@@ -9,6 +9,7 @@ RUN go mod download
 # Copy application files
 COPY main.go .
 COPY index.html .
+COPY fonts ./fonts
 
 # Build app
 RUN go build -o mortgage_app main.go

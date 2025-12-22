@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/jung-kurt/gofpdf"
 )
@@ -75,13 +76,27 @@ func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 			Remaining:      remaining,
 		}
 
-		tmpl := template.Must(template.ParseFiles("index.html"))
+		tmpl := template.Must(
+			template.New("index.html").
+				Funcs(template.FuncMap{
+					"gbp": formatGBP,
+				}).
+				ParseFiles("index.html"),
+		)
+
 		tmpl.Execute(w, data)
 		return
 	}
 
 	// Show empty form
-	tmpl := template.Must(template.ParseFiles("index.html"))
+	tmpl := template.Must(
+		template.New("index.html").
+			Funcs(template.FuncMap{
+				"gbp": formatGBP,
+			}).
+			ParseFiles("index.html"),
+	)
+
 	tmpl.Execute(w, nil)
 }
 
@@ -142,11 +157,27 @@ func downloadPDFHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(pdfBytes)
 }
 
+func formatGBP(v float64) string {
+	s := fmt.Sprintf("%.2f", v)
+
+	parts := strings.Split(s, ".")
+	intPart := parts[0]
+	decPart := parts[1]
+
+	n := len(intPart)
+	for i := n - 3; i > 0; i -= 3 {
+		intPart = intPart[:i] + "," + intPart[i:]
+	}
+
+	return "£" + intPart + "." + decPart
+}
+
 // Generate PDF in memory
 func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
-	pdf.SetFont("Arial", "B", 16)
+	pdf.AddUTF8Font("DejaVu", "B", "fonts/DejaVuSans-Bold.ttf")
+	pdf.SetFont("DejaVu", "B", 14)
 	pdf.Cell(40, 10, "Mortgage Breakdown")
 	pdf.Ln(12)
 
@@ -159,36 +190,36 @@ func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	totalPaid := totalInterest + totalPrincipal
 	remaining := data[len(data)-1].Balance
 
-	pdf.SetFont("Arial", "", 12)
-	pdf.Cell(60, 8, fmt.Sprintf("Principal: GBP %.2f", m.Principal))
+	pdf.SetFont("DejaVu", "B", 11)
+	pdf.Cell(60, 8, "Principal: "+formatGBP(m.Principal))
 	pdf.Ln(6)
 	pdf.Cell(60, 8, fmt.Sprintf("Fixed rate period: %d months", m.FixedMonths))
 	pdf.Ln(6)
-	pdf.Cell(60, 8, fmt.Sprintf("Monthly payment: GBP %.2f", m.MonthlyPayment))
+	pdf.Cell(60, 8, "Monthly payment: "+formatGBP(m.MonthlyPayment))
 	pdf.Ln(6)
-	pdf.Cell(60, 8, fmt.Sprintf("Total paid: GBP %.2f", totalPaid))
+	pdf.Cell(60, 8, "Total paid: "+formatGBP(totalPaid))
 	pdf.Ln(6)
-	pdf.Cell(60, 8, fmt.Sprintf("Total interest: GBP %.2f", totalInterest))
+	pdf.Cell(60, 8, "Total interest: "+formatGBP(totalInterest))
 	pdf.Ln(6)
-	pdf.Cell(60, 8, fmt.Sprintf("Total principal: GBP %.2f", totalPrincipal))
+	pdf.Cell(60, 8, "Total principal: "+formatGBP(totalPrincipal))
 	pdf.Ln(6)
-	pdf.Cell(60, 8, fmt.Sprintf("Remaining balance: GBP %.2f", remaining))
+	pdf.Cell(60, 8, "Remaining balance: "+formatGBP(remaining))
 	pdf.Ln(12)
 
 	// Fixed-period Breakdown Table
-	pdf.SetFont("Arial", "B", 12)
+	pdf.SetFont("DejaVu", "B", 11)
 	pdf.Cell(20, 8, "Month")
 	pdf.Cell(30, 8, "Interest")
 	pdf.Cell(30, 8, "Principal")
 	pdf.Cell(30, 8, "Balance")
 	pdf.Ln(8)
 
-	pdf.SetFont("Arial", "", 12)
+	pdf.SetFont("DejaVu", "B", 11)
 	for _, d := range data {
 		pdf.Cell(20, 8, strconv.Itoa(d.Month))
-		pdf.Cell(30, 8, fmt.Sprintf("%.2f", d.InterestPayment))
-		pdf.Cell(30, 8, fmt.Sprintf("%.2f", d.PrincipalPayment))
-		pdf.Cell(30, 8, fmt.Sprintf("%.2f", d.Balance))
+		pdf.Cell(30, 8, formatGBP(d.InterestPayment))
+		pdf.Cell(30, 8, formatGBP(d.PrincipalPayment))
+		pdf.Cell(30, 8, formatGBP(d.Balance))
 		pdf.Ln(8)
 	}
 
