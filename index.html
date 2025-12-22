@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mortgage Calculator</title>
+<style>
+  /* General Styles */
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f9fc;
+    color: #333;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1, h2 {
+    text-align: center;
+    color: #2c3e50;
+  }
+
+  h1 {
+    margin-top: 40px;
+  }
+
+  /* Form Styling */
+  form {
+    background-color: #ffffff;
+    max-width: 500px;
+    margin: 30px auto;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  label {
+    display: block;
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    background-color: #3498db;
+    border: none;
+    color: white;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  button:hover {
+    background-color: #2980b9;
+  }
+
+  /* Summary Styling */
+  .summary {
+    max-width: 700px;
+    margin: 20px auto;
+    background-color: #ffffff;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .summary p {
+    font-size: 16px;
+    margin: 8px 0;
+  }
+
+  /* Table Styling */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+
+  th, td {
+    padding: 10px;
+    text-align: right;
+    border-bottom: 1px solid #ddd;
+  }
+
+  th {
+    background-color: #3498db;
+    color: white;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+
+  tr:hover {
+    background-color: #e6f7ff;
+  }
+</style>
+</head>
+<body>
+
+<h1>Mortgage Calculator</h1>
+<form method="POST">
+  <label>Principal (£):
+    <input type="text" name="principal">
+  </label>
+  <label>Annual Rate (%):
+    <input type="text" name="rate">
+  </label>
+  <label>Fixed Months:
+    <input type="text" name="months">
+  </label>
+  <label>Monthly Payment (£):
+    <input type="text" name="monthly" value="2209.51">
+  </label>
+  <button type="submit">Calculate</button>
+</form>
+
+{{if .Breakdown}}
+<div class="summary">
+<h2>Mortgage Summary</h2>
+<p>Principal: £{{printf "%.2f" .Mortgage.Principal}}</p>
+<p>Fixed rate period: {{.Mortgage.FixedMonths}} months</p>
+<p>Monthly payment: £{{printf "%.2f" .Mortgage.MonthlyPayment}}</p>
+<p>Total paid: £{{printf "%.2f" .TotalPaid}}</p>
+<p>Total interest: £{{printf "%.2f" .TotalInterest}}</p>
+<p>Total principal: £{{printf "%.2f" .TotalPrincipal}}</p>
+<p>Remaining balance: £{{printf "%.2f" .Remaining}}</p>
+
+<h2>Monthly Breakdown</h2>
+<table>
+<tr>
+<th>Month</th>
+<th>Interest (£)</th>
+<th>Principal (£)</th>
+<th>Balance (£)</th>
+</tr>
+{{range .Breakdown}}
+<tr>
+<td>{{.Month}}</td>
+<td>{{printf "%.2f" .InterestPayment}}</td>
+<td>{{printf "%.2f" .PrincipalPayment}}</td>
+<td>{{printf "%.2f" .Balance}}</td>
+</tr>
+{{end}}
+</table>
+
+<form action="/download-pdf" method="POST" target="_blank">
+  <input type="hidden" name="principal" value="{{.Mortgage.Principal}}">
+  <input type="hidden" name="rate" value="{{.Mortgage.AnnualRate}}">
+  <input type="hidden" name="months" value="{{.Mortgage.FixedMonths}}">
+  <input type="hidden" name="monthly" value="{{.Mortgage.MonthlyPayment}}">
+  <button type="submit">Download PDF</button>
+</form>
+
+</div>
+{{end}}
+
+</body>
+</html>
