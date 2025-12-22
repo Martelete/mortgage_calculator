@@ -3,10 +3,10 @@ APP_NAME=mortgage_calculator
 .PHONY: run build docker-build docker-run docker-stop clean
 
 run:
-	go run browser.go
+	go run main.go
 
 build:
-	go build -o $(APP_NAME) browser.go
+	go build -o $(APP_NAME) main.go
 
 docker-build:
 	docker build -t $(APP_NAME) .
