@@ -7,11 +7,11 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy application files
-COPY browser.go .
+COPY main.go .
 COPY index.html .
 
 # Build app
-RUN go build -o mortgage_app browser.go
+RUN go build -o mortgage_app main.go
 
 # Expose web port
 EXPOSE 8080
