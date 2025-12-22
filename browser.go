@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -47,7 +48,7 @@ func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 		principal, _ := strconv.ParseFloat(r.FormValue("principal"), 64)
 		ratePercent, _ := strconv.ParseFloat(r.FormValue("rate"), 64)
 		fixedMonths, _ := strconv.Atoi(r.FormValue("months"))
-		monthlyPayment, _ := strconv.ParseFloat(r.FormValue("monthly"), 64)
+		monthlyPayment := CalculateMonthlyPayment(principal, ratePercent, fixedMonths)
 
 		m := Mortgage{
 			Principal:      principal,
@@ -85,6 +86,15 @@ func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
+func CalculateMonthlyPayment(principal, annualRate float64, months int) float64 {
+	monthlyRate := (annualRate / 100) / 12
+	if monthlyRate == 0 {
+		return principal / float64(months)
+	}
+	return principal * (monthlyRate * math.Pow(1+monthlyRate, float64(months))) /
+		(math.Pow(1+monthlyRate, float64(months)) - 1)
+}
+
 func GenerateMonthlyBreakdown(m Mortgage) []MonthlyData {
 	balance := m.Principal
 	monthlyRate := (m.AnnualRate / 100) / 12
@@ -119,7 +129,7 @@ func downloadPDFHandler(w http.ResponseWriter, r *http.Request) {
 	principal, _ := strconv.ParseFloat(r.FormValue("principal"), 64)
 	ratePercent, _ := strconv.ParseFloat(r.FormValue("rate"), 64)
 	fixedMonths, _ := strconv.Atoi(r.FormValue("months"))
-	monthlyPayment, _ := strconv.ParseFloat(r.FormValue("monthly"), 64)
+	monthlyPayment := CalculateMonthlyPayment(principal, ratePercent, fixedMonths)
 
 	m := Mortgage{
 		Principal:      principal,
