@@ -3,166 +3,262 @@
 <head>
 <meta charset="UTF-8">
 <title>Mortgage Calculator</title>
+
 <style>
-  /* General Styles */
-  body {
-    font-family: Arial, sans-serif;
-    background-color: #f7f9fc;
-    color: #333;
-    margin: 0;
-    padding: 0;
-  }
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+}
 
-  h1, h2 {
-    text-align: center;
-    color: #2c3e50;
-  }
+* {
+  box-sizing: border-box;
+}
 
-  h1 {
-    margin-top: 40px;
-  }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 40px 16px;
+}
 
-  /* Form Styling */
-  form {
-    background-color: #ffffff;
-    max-width: 500px;
-    margin: 30px auto;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
+h1 {
+  text-align: center;
+  margin-bottom: 32px;
+  font-size: 2.2rem;
+}
 
-  label {
-    display: block;
-    margin-bottom: 15px;
-    font-weight: bold;
-  }
+h2 {
+  margin-top: 0;
+}
 
-  input[type="text"] {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-sizing: border-box;
-  }
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
 
-  button {
-    width: 100%;
-    padding: 12px;
-    background-color: #3498db;
-    border: none;
-    color: white;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  margin-bottom: 32px;
+}
 
-  button:hover {
-    background-color: #2980b9;
-  }
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
 
-  /* Summary Styling */
-  .summary {
-    max-width: 700px;
-    margin: 20px auto;
-    background-color: #ffffff;
-    padding: 20px 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
+label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
 
-  .summary p {
-    font-size: 16px;
-    margin: 8px 0;
-  }
+input[type="text"] {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
 
-  /* Table Styling */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
 
-  th, td {
-    padding: 10px;
-    text-align: right;
-    border-bottom: 1px solid #ddd;
-  }
+button {
+  margin-top: 16px;
+  padding: 14px;
+  background-color: var(--primary);
+  border: none;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
 
-  th {
-    background-color: #3498db;
-    color: white;
-  }
+button:hover {
+  background-color: var(--primary-dark);
+}
 
-  tr:nth-child(even) {
-    background-color: #f2f2f2;
-  }
+/* Summary */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
 
-  tr:hover {
-    background-color: #e6f7ff;
-  }
+.summary-item {
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.summary-item span {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.summary-item strong {
+  font-size: 1.1rem;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+th, td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+th {
+  background-color: #f1f5f9;
+  font-weight: 700;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* PDF Button */
+.pdf-button {
+  margin-top: 24px;
+}
 </style>
 </head>
+
 <body>
 
 <h1>Mortgage Calculator</h1>
-<form method="POST">
-  <label>Principal (£):
-    <input type="text" name="principal">
-  </label>
-  <label>Annual Rate (%):
-    <input type="text" name="rate">
-  </label>
-  <label>Fixed Months:
-    <input type="text" name="months">
-  </label>
-  <label>Monthly Payment (£):
-    <input type="text" name="monthly">
-  </label>
-  <button type="submit">Calculate</button>
-</form>
 
-{{if .Breakdown}}
-<div class="summary">
-<h2>Mortgage Summary</h2>
-<p>Principal: £{{printf "%.2f" .Mortgage.Principal}}</p>
-<p>Fixed rate period: {{.Mortgage.FixedMonths}} months</p>
-<p>Monthly payment: £{{printf "%.2f" .Mortgage.MonthlyPayment}}</p>
-<p>Total paid: £{{printf "%.2f" .TotalPaid}}</p>
-<p>Total interest: £{{printf "%.2f" .TotalInterest}}</p>
-<p>Total principal: £{{printf "%.2f" .TotalPrincipal}}</p>
-<p>Remaining balance: £{{printf "%.2f" .Remaining}}</p>
+<div class="container">
 
-<h2>Monthly Breakdown</h2>
-<table>
-<tr>
-<th>Month</th>
-<th>Interest (£)</th>
-<th>Principal (£)</th>
-<th>Balance (£)</th>
-</tr>
-{{range .Breakdown}}
-<tr>
-<td>{{.Month}}</td>
-<td>{{printf "%.2f" .InterestPayment}}</td>
-<td>{{printf "%.2f" .PrincipalPayment}}</td>
-<td>{{printf "%.2f" .Balance}}</td>
-</tr>
-{{end}}
-</table>
+  <!-- Input Form -->
+  <div class="card">
+    <form method="POST">
+      <div class="form-grid">
+        <label>
+          Principal (£)
+          <input type="text" name="principal" placeholder="e.g. 400000" required>
+        </label>
 
-<form action="/download-pdf" method="POST" target="_blank">
-  <input type="hidden" name="principal" value="{{.Mortgage.Principal}}">
-  <input type="hidden" name="rate" value="{{.Mortgage.AnnualRate}}">
-  <input type="hidden" name="months" value="{{.Mortgage.FixedMonths}}">
-  <input type="hidden" name="monthly" value="{{.Mortgage.MonthlyPayment}}">
-  <button type="submit">Download PDF</button>
-</form>
+        <label>
+          Annual Interest Rate (%)
+          <input type="text" name="rate" placeholder="e.g. 5.25" required>
+        </label>
+
+        <label>
+          Fixed Period (months)
+          <input type="text" name="months" placeholder="e.g. 24" required>
+        </label>
+
+        <label>
+          Monthly Payment (£)
+          <input type="text" name="monthly" placeholder="e.g. 1500.50" required>
+        </label>
+
+        <button type="submit">Calculate</button>
+      </div>
+    </form>
+  </div>
+
+  {{if .Breakdown}}
+  <!-- Summary -->
+  <div class="card">
+    <h2>Mortgage Summary</h2>
+
+    <div class="summary-grid">
+      <div class="summary-item">
+        <span>Principal</span>
+        <strong>{{gbp .Mortgage.Principal}}</strong>
+      </div>
+
+      <div class="summary-item">
+        <span>Fixed Period</span>
+        <strong>{{.Mortgage.FixedMonths}} months</strong>
+      </div>
+
+      <div class="summary-item">
+        <span>Monthly Payment</span>
+        <strong>{{gbp .Mortgage.MonthlyPayment}}</strong>
+      </div>
+
+      <div class="summary-item">
+        <span>Total Paid</span>
+        <strong>{{gbp .TotalPaid}}</strong>
+      </div>
+
+      <div class="summary-item">
+        <span>Total Interest</span>
+        <strong>{{gbp .TotalInterest}}</strong>
+      </div>
+
+      <div class="summary-item">
+        <span>Remaining Balance</span>
+        <strong>{{gbp .Remaining}}</strong>
+      </div>
+    </div>
+
+    <h2>Monthly Breakdown</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Interest (£)</th>
+          <th>Principal (£)</th>
+          <th>Balance (£)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Breakdown}}
+        <tr>
+          <td>{{.Month}}</td>
+          <td>{{gbp .InterestPayment}}</td>
+          <td>{{gbp .PrincipalPayment}}</td>
+          <td>{{gbp .Balance}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+
+    <form action="/download-pdf" method="POST" target="_blank" class="pdf-button">
+      <input type="hidden" name="principal" value="{{.Mortgage.Principal}}">
+      <input type="hidden" name="rate" value="{{.Mortgage.AnnualRate}}">
+      <input type="hidden" name="months" value="{{.Mortgage.FixedMonths}}">
+      <input type="hidden" name="monthly" value="{{.Mortgage.MonthlyPayment}}">
+      <button type="submit">Download PDF</button>
+    </form>
+  </div>
+  {{end}}
 
 </div>
-{{end}}
 
 </body>
 </html>
