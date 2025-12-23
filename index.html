@@ -248,13 +248,16 @@ tbody tr:hover {
       </tbody>
     </table>
 
-    <form action="/download-pdf" method="POST" target="_blank" class="pdf-button">
-      <input type="hidden" name="principal" value="{{.Mortgage.Principal}}">
-      <input type="hidden" name="rate" value="{{.Mortgage.AnnualRate}}">
-      <input type="hidden" name="months" value="{{.Mortgage.FixedMonths}}">
-      <input type="hidden" name="monthly" value="{{.Mortgage.MonthlyPayment}}">
-      <button type="submit">Download PDF</button>
-    </form>
+{{if .Mortgage.FixedMonths}}
+<form action="/download-pdf" method="POST" target="_blank" class="pdf-button">
+  <input type="hidden" name="principal" value="{{.Mortgage.Principal}}">
+  <input type="hidden" name="rate" value="{{.Mortgage.AnnualRate}}">
+  <input type="hidden" name="months" value="{{.Mortgage.FixedMonths}}">
+  <input type="hidden" name="monthly" value="{{.Mortgage.MonthlyPayment}}">
+  <button type="submit">Download PDF</button>
+</form>
+{{end}}
+
 
   </div>
   {{end}}
