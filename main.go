@@ -38,85 +38,156 @@ type PageData struct {
 func main() {
 	http.HandleFunc("/", mortgageHandler)
 	http.HandleFunc("/download-pdf", downloadPDFHandler)
+
 	fmt.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
+// ---------- Handlers ----------
+
 func mortgageHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		r.ParseForm()
-		principal, err := strconv.ParseFloat(r.FormValue("principal"), 64)
-		ratePercent, err := strconv.ParseFloat(r.FormValue("rate"), 64)
-		fixedMonths, err := strconv.Atoi(r.FormValue("months"))
-		monthlyPayment, err := strconv.ParseFloat(r.FormValue("monthly"), 64)
-
-		if err != nil {
-			return
-		}
-
-		m := Mortgage{
-			Principal:      principal,
-			AnnualRate:     ratePercent,
-			FixedMonths:    fixedMonths,
-			MonthlyPayment: monthlyPayment,
-		}
-
-		breakdown := GenerateMonthlyBreakdown(m)
-
-		var totalInterest, totalPrincipal float64
-		for _, d := range breakdown {
-			totalInterest += d.InterestPayment
-			totalPrincipal += d.PrincipalPayment
-		}
-		totalPaid := totalInterest + totalPrincipal
-		remaining := breakdown[len(breakdown)-1].Balance
-
-		data := PageData{
-			Mortgage:       m,
-			Breakdown:      breakdown,
-			TotalPaid:      totalPaid,
-			TotalInterest:  totalInterest,
-			TotalPrincipal: totalPrincipal,
-			Remaining:      remaining,
-		}
-
-		tmpl := template.Must(
-			template.New("index.html").
-				Funcs(template.FuncMap{
-					"gbp": formatGBP,
-				}).
-				ParseFiles("index.html"),
-		)
-
-		tmpl.Execute(w, data)
-		return
-	}
-
-	// Show empty form
 	tmpl := template.Must(
 		template.New("index.html").
-			Funcs(template.FuncMap{
-				"gbp": formatGBP,
-			}).
+			Funcs(template.FuncMap{"gbp": formatGBP}).
 			ParseFiles("index.html"),
 	)
 
-	tmpl.Execute(w, nil)
+	if r.Method != http.MethodPost {
+		tmpl.Execute(w, PageData{})
+		return
+	}
+
+	m, err := parseMortgageForm(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	breakdown := GenerateMonthlyBreakdown(m)
+
+	var totalInterest, totalPrincipal float64
+	for _, d := range breakdown {
+		totalInterest += d.InterestPayment
+		totalPrincipal += d.PrincipalPayment
+	}
+
+	data := PageData{
+		Mortgage:       m,
+		Breakdown:      breakdown,
+		TotalPaid:      totalInterest + totalPrincipal,
+		TotalInterest:  totalInterest,
+		TotalPrincipal: totalPrincipal,
+		Remaining:      breakdown[len(breakdown)-1].Balance,
+	}
+
+	tmpl.Execute(w, data)
 }
+
+func downloadPDFHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	m, err := parseMortgageForm(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	breakdown := GenerateMonthlyBreakdown(m)
+
+	pdfBytes, err := GeneratePDFBytes(m, breakdown)
+	if err != nil {
+		http.Error(w, "Failed to generate PDF", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", "attachment; filename=mortgage_breakdown.pdf")
+	w.Write(pdfBytes)
+}
+
+// ---------- Form Parsing ----------
+
+func parseMortgageForm(r *http.Request) (Mortgage, error) {
+	if err := r.ParseForm(); err != nil {
+		return Mortgage{}, err
+	}
+
+	get := func(name string) (string, error) {
+		v := strings.TrimSpace(r.FormValue(name))
+		if v == "" {
+			return "", fmt.Errorf("missing field: %s", name)
+		}
+		return v, nil
+	}
+
+	log.Printf("FORM months=%q", r.FormValue("months"))
+
+	principalStr, err := get("principal")
+	if err != nil {
+		return Mortgage{}, err
+	}
+	rateStr, err := get("rate")
+	if err != nil {
+		return Mortgage{}, err
+	}
+	monthsStr, err := get("months")
+	if err != nil {
+		return Mortgage{}, err
+	}
+	monthlyStr, err := get("monthly")
+	if err != nil {
+		return Mortgage{}, err
+	}
+
+	principal, err := strconv.ParseFloat(principalStr, 64)
+	if err != nil {
+		return Mortgage{}, fmt.Errorf("invalid principal")
+	}
+
+	ratePercent, err := strconv.ParseFloat(rateStr, 64)
+	if err != nil {
+		return Mortgage{}, fmt.Errorf("invalid rate")
+	}
+
+	fixedMonths, err := strconv.Atoi(monthsStr)
+	if err != nil {
+		return Mortgage{}, fmt.Errorf("invalid months")
+	}
+
+	monthlyPayment, err := strconv.ParseFloat(monthlyStr, 64)
+	if err != nil {
+		return Mortgage{}, fmt.Errorf("invalid monthly payment")
+	}
+
+	return Mortgage{
+		Principal:      principal,
+		AnnualRate:     ratePercent,
+		FixedMonths:    fixedMonths,
+		MonthlyPayment: monthlyPayment,
+	}, nil
+}
+
+// ---------- Mortgage Logic ----------
 
 func GenerateMonthlyBreakdown(m Mortgage) []MonthlyData {
 	balance := m.Principal
 	monthlyRate := (m.AnnualRate / 100) / 12
+
 	data := make([]MonthlyData, m.FixedMonths)
 
 	for i := 0; i < m.FixedMonths; i++ {
 		interest := balance * monthlyRate
 		principalPayment := m.MonthlyPayment - interest
 		balance -= principalPayment
+
 		if balance < 0 {
 			principalPayment += balance
 			balance = 0
 		}
+
 		data[i] = MonthlyData{
 			Month:            i + 1,
 			InterestPayment:  interest,
@@ -128,74 +199,37 @@ func GenerateMonthlyBreakdown(m Mortgage) []MonthlyData {
 	return data
 }
 
-func downloadPDFHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	r.ParseForm()
-	principal, err := strconv.ParseFloat(r.FormValue("principal"), 64)
-	ratePercent, err := strconv.ParseFloat(r.FormValue("rate"), 64)
-	fixedMonths, err := strconv.Atoi(r.FormValue("months"))
-	monthlyPayment, err := strconv.ParseFloat(r.FormValue("monthly"), 64)
-
-	if err != nil {
-		fmt.Println("Unable to parse PDF file")
-		return
-	}
-
-	m := Mortgage{
-		Principal:      principal,
-		AnnualRate:     ratePercent,
-		FixedMonths:    fixedMonths,
-		MonthlyPayment: monthlyPayment,
-	}
-
-	breakdown := GenerateMonthlyBreakdown(m)
-
-	pdfBytes, err := GeneratePDFBytes(m, breakdown)
-	if err != nil {
-		http.Error(w, "Failed to generate PDF", http.StatusInternalServerError)
-		return
-	}
-
-	// Send PDF to browser
-	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", "attachment; filename=mortgage_breakdown.pdf")
-	w.Write(pdfBytes)
-}
+// ---------- Formatting ----------
 
 func formatGBP(v float64) string {
 	s := fmt.Sprintf("%.2f", v)
-
 	parts := strings.Split(s, ".")
-	intPart := parts[0]
-	decPart := parts[1]
+	intPart, decPart := parts[0], parts[1]
 
-	n := len(intPart)
-	for i := n - 3; i > 0; i -= 3 {
+	for i := len(intPart) - 3; i > 0; i -= 3 {
 		intPart = intPart[:i] + "," + intPart[i:]
 	}
 
 	return "£" + intPart + "." + decPart
 }
 
-// Generate PDF in memory
+// ---------- PDF Generation ----------
+
 func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
+
 	pdf.AddUTF8Font("DejaVu", "B", "fonts/DejaVuSans-Bold.ttf")
 	pdf.SetFont("DejaVu", "B", 14)
 	pdf.Cell(40, 10, "Mortgage Breakdown")
 	pdf.Ln(12)
 
-	// Mortgage Summary
 	var totalInterest, totalPrincipal float64
 	for _, d := range data {
 		totalInterest += d.InterestPayment
 		totalPrincipal += d.PrincipalPayment
 	}
+
 	totalPaid := totalInterest + totalPrincipal
 	remaining := data[len(data)-1].Balance
 
@@ -215,15 +249,12 @@ func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	pdf.Cell(60, 8, "Remaining balance: "+formatGBP(remaining))
 	pdf.Ln(12)
 
-	// Fixed-period Breakdown Table
-	pdf.SetFont("DejaVu", "B", 11)
 	pdf.Cell(20, 8, "Month")
 	pdf.Cell(30, 8, "Interest")
 	pdf.Cell(30, 8, "Principal")
 	pdf.Cell(30, 8, "Balance")
 	pdf.Ln(8)
 
-	pdf.SetFont("DejaVu", "B", 11)
 	for _, d := range data {
 		pdf.Cell(20, 8, strconv.Itoa(d.Month))
 		pdf.Cell(30, 8, formatGBP(d.InterestPayment))
@@ -236,5 +267,6 @@ func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	if err := pdf.Output(&buf); err != nil {
 		return nil, err
 	}
+
 	return buf.Bytes(), nil
 }

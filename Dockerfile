@@ -1,21 +1,13 @@
-FROM golang:1.24.3
+FROM golang:1.22-alpine
 
 WORKDIR /app
 
-# Copy module files first (important for caching)
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy application files
-COPY main.go .
-COPY index.html .
-COPY fonts ./fonts
+COPY . .
 
-# Build app
-RUN go build -o mortgage_app main.go
+RUN go build -o mortgage_app
 
-# Expose web port
 EXPOSE 8080
-
-# Run app
 CMD ["./mortgage_app"]
