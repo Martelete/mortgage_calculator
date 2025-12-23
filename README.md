@@ -28,7 +28,7 @@ It calculates a fixed-period mortgage amortization schedule, displays the breakd
 
 ### Main Components
 
-1. **`browser.go`**
+1. **`main.go`**
    - HTTP web server handling:
      - GET `/` → serve form
      - POST `/` → compute mortgage and render results
@@ -116,16 +116,9 @@ This allows the containerized Go application to be accessed directly from your l
     - Monthly breakdown table
 5. Click **Download PDF** to export the report
 
-## 📄 Notes About PDF Output
-
-- Floating-point values are formatted to two decimal places
-- Currency symbols require UTF-8 compatible fonts
-- PDF values exactly match the HTML calculations
-
 ## 🔧 Potential Improvements
 
 - Input validation and error handling
 - Auto-calculate monthly payment
-- Thousands separators (e.g. £333,802.37)
 - Improved mobile responsiveness
 - Paginated PDF tables for long mortgage terms

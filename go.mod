@@ -2,4 +2,4 @@ module main.go
 
 go 1.22
 
-require github.com/jung-kurt/gofpdf v1.16.2
+require github.com/phpdave11/gofpdf v1.4.3
