@@ -45,7 +45,7 @@ func main() {
 func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		principal, err := strconv.ParseFloat(r.FormValue("principal"), 64)
+		principal, err := strconv.ParseFloat(r.FormValue("principals"), 64)
 		ratePercent, err := strconv.ParseFloat(r.FormValue("rate"), 64)
 		fixedMonths, err := strconv.Atoi(r.FormValue("months"))
 		monthlyPayment, err := strconv.ParseFloat(r.FormValue("monthly"), 64)
