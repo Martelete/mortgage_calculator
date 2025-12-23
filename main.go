@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/csv"
 	"fmt"
 	"html/template"
 	"log"
@@ -38,12 +39,11 @@ type PageData struct {
 func main() {
 	http.HandleFunc("/", mortgageHandler)
 	http.HandleFunc("/download-pdf", downloadPDFHandler)
+	http.HandleFunc("/download-csv", downloadCSVHandler)
 
 	fmt.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-
-// ---------- Handlers ----------
 
 func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(
@@ -108,7 +108,39 @@ func downloadPDFHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(pdfBytes)
 }
 
-// ---------- Form Parsing ----------
+func downloadCSVHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	m, err := parseMortgageForm(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	breakdown := GenerateMonthlyBreakdown(m)
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=mortgage_breakdown.csv")
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	// Write CSV headers
+	writer.Write([]string{"Month", "Interest", "Principal", "Balance"})
+
+	// Write rows
+	for _, d := range breakdown {
+		writer.Write([]string{
+			strconv.Itoa(d.Month),
+			fmt.Sprintf("%.2f", d.InterestPayment),
+			fmt.Sprintf("%.2f", d.PrincipalPayment),
+			fmt.Sprintf("%.2f", d.Balance),
+		})
+	}
+}
 
 func parseMortgageForm(r *http.Request) (Mortgage, error) {
 	if err := r.ParseForm(); err != nil {
@@ -170,8 +202,6 @@ func parseMortgageForm(r *http.Request) (Mortgage, error) {
 	}, nil
 }
 
-// ---------- Mortgage Logic ----------
-
 func GenerateMonthlyBreakdown(m Mortgage) []MonthlyData {
 	balance := m.Principal
 	monthlyRate := (m.AnnualRate / 100) / 12
@@ -199,8 +229,6 @@ func GenerateMonthlyBreakdown(m Mortgage) []MonthlyData {
 	return data
 }
 
-// ---------- Formatting ----------
-
 func formatGBP(v float64) string {
 	s := fmt.Sprintf("%.2f", v)
 	parts := strings.Split(s, ".")
@@ -212,8 +240,6 @@ func formatGBP(v float64) string {
 
 	return "£" + intPart + "." + decPart
 }
-
-// ---------- PDF Generation ----------
 
 func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")

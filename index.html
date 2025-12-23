@@ -256,6 +256,14 @@ tbody tr:hover {
   <input type="hidden" name="monthly" value="{{.Mortgage.MonthlyPayment}}">
   <button type="submit">Download PDF</button>
 </form>
+
+<form action="/download-csv" method="POST" class="pdf-button">
+  <input type="hidden" name="principal" value="{{.Mortgage.Principal}}">
+  <input type="hidden" name="rate" value="{{.Mortgage.AnnualRate}}">
+  <input type="hidden" name="months" value="{{.Mortgage.FixedMonths}}">
+  <input type="hidden" name="monthly" value="{{.Mortgage.MonthlyPayment}}">
+  <button type="submit">Download CSV</button>
+</form>
 {{end}}
 
 
