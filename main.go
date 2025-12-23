@@ -45,10 +45,14 @@ func main() {
 func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
-		principal, _ := strconv.ParseFloat(r.FormValue("principal"), 64)
-		ratePercent, _ := strconv.ParseFloat(r.FormValue("rate"), 64)
-		fixedMonths, _ := strconv.Atoi(r.FormValue("months"))
-		monthlyPayment, _ := strconv.ParseFloat(r.FormValue("monthly"), 64)
+		principal, err := strconv.ParseFloat(r.FormValue("principal"), 64)
+		ratePercent, err := strconv.ParseFloat(r.FormValue("rate"), 64)
+		fixedMonths, err := strconv.Atoi(r.FormValue("months"))
+		monthlyPayment, err := strconv.ParseFloat(r.FormValue("monthly"), 64)
+
+		if err != nil {
+			return
+		}
 
 		m := Mortgage{
 			Principal:      principal,
@@ -131,10 +135,15 @@ func downloadPDFHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseForm()
-	principal, _ := strconv.ParseFloat(r.FormValue("principal"), 64)
-	ratePercent, _ := strconv.ParseFloat(r.FormValue("rate"), 64)
-	fixedMonths, _ := strconv.Atoi(r.FormValue("months"))
-	monthlyPayment, _ := strconv.ParseFloat(r.FormValue("monthly"), 64)
+	principal, err := strconv.ParseFloat(r.FormValue("principal"), 64)
+	ratePercent, err := strconv.ParseFloat(r.FormValue("rate"), 64)
+	fixedMonths, err := strconv.Atoi(r.FormValue("months"))
+	monthlyPayment, err := strconv.ParseFloat(r.FormValue("monthly"), 64)
+
+	if err != nil {
+		fmt.Println("Unable to parse PDF file")
+		return
+	}
 
 	m := Mortgage{
 		Principal:      principal,
