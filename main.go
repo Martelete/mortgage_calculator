@@ -25,6 +25,7 @@ type MonthlyData struct {
 	InterestPayment  float64
 	PrincipalPayment float64
 	Balance          float64
+	Rate             float64
 }
 
 type PageData struct {
@@ -34,6 +35,7 @@ type PageData struct {
 	TotalInterest  float64
 	TotalPrincipal float64
 	Remaining      float64
+	Rate           float64
 }
 
 func main() {
@@ -78,6 +80,7 @@ func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 		TotalInterest:  totalInterest,
 		TotalPrincipal: totalPrincipal,
 		Remaining:      breakdown[len(breakdown)-1].Balance,
+		Rate:           m.AnnualRate,
 	}
 
 	tmpl.Execute(w, data)
@@ -129,15 +132,16 @@ func downloadCSVHandler(w http.ResponseWriter, r *http.Request) {
 	defer writer.Flush()
 
 	// Write CSV headers
-	writer.Write([]string{"Month", "Interest", "Principal", "Balance"})
+	writer.Write([]string{"Month", "Principal", "Balance", "Interest Payment", "Interest Rate (%)"})
 
 	// Write rows
 	for _, d := range breakdown {
 		writer.Write([]string{
 			strconv.Itoa(d.Month),
-			fmt.Sprintf("%.2f", d.InterestPayment),
-			fmt.Sprintf("%.2f", d.PrincipalPayment),
-			fmt.Sprintf("%.2f", d.Balance),
+			formatGBP(d.PrincipalPayment),
+			formatGBP(d.Balance),
+			formatGBP(d.InterestPayment),
+			fmt.Sprintf("%.2f%%", d.Rate),
 		})
 	}
 }
@@ -223,6 +227,7 @@ func GenerateMonthlyBreakdown(m Mortgage) []MonthlyData {
 			InterestPayment:  interest,
 			PrincipalPayment: principalPayment,
 			Balance:          balance,
+			Rate:             monthlyRate * 100,
 		}
 	}
 
@@ -264,6 +269,8 @@ func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	pdf.Ln(6)
 	pdf.Cell(60, 8, fmt.Sprintf("Fixed rate period: %d months", m.FixedMonths))
 	pdf.Ln(6)
+	pdf.Cell(60, 8, fmt.Sprintf("Interest rate: %.2f%%", m.AnnualRate))
+	pdf.Ln(6)
 	pdf.Cell(60, 8, "Monthly payment: "+formatGBP(m.MonthlyPayment))
 	pdf.Ln(6)
 	pdf.Cell(60, 8, "Total paid: "+formatGBP(totalPaid))
@@ -279,6 +286,7 @@ func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	pdf.Cell(30, 8, "Interest")
 	pdf.Cell(30, 8, "Principal")
 	pdf.Cell(30, 8, "Balance")
+	pdf.Cell(30, 8, "Interest Rate (%)")
 	pdf.Ln(8)
 
 	for _, d := range data {
@@ -286,6 +294,7 @@ func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 		pdf.Cell(30, 8, formatGBP(d.InterestPayment))
 		pdf.Cell(30, 8, formatGBP(d.PrincipalPayment))
 		pdf.Cell(30, 8, formatGBP(d.Balance))
+		pdf.Cell(30, 8, fmt.Sprintf("%.2f%%", d.Rate))
 		pdf.Ln(8)
 	}
 
