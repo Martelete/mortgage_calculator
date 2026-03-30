@@ -34,6 +34,7 @@ type PageData struct {
 	TotalInterest  float64
 	TotalPrincipal float64
 	Remaining      float64
+	Rate           float64
 }
 
 func main() {
@@ -78,6 +79,7 @@ func mortgageHandler(w http.ResponseWriter, r *http.Request) {
 		TotalInterest:  totalInterest,
 		TotalPrincipal: totalPrincipal,
 		Remaining:      breakdown[len(breakdown)-1].Balance,
+		Rate:           m.AnnualRate,
 	}
 
 	tmpl.Execute(w, data)
@@ -263,6 +265,8 @@ func GeneratePDFBytes(m Mortgage, data []MonthlyData) ([]byte, error) {
 	pdf.Cell(60, 8, "Principal: "+formatGBP(m.Principal))
 	pdf.Ln(6)
 	pdf.Cell(60, 8, fmt.Sprintf("Fixed rate period: %d months", m.FixedMonths))
+	pdf.Ln(6)
+	pdf.Cell(60, 8, fmt.Sprintf("Interest rate: %d months", m.AnnualRate))
 	pdf.Ln(6)
 	pdf.Cell(60, 8, "Monthly payment: "+formatGBP(m.MonthlyPayment))
 	pdf.Ln(6)
